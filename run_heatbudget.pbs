@@ -1,0 +1,54 @@
+#!/bin/bash -l
+#PBS -S /bin/bash
+#PBS -P p66
+#PBS -W umask=002
+#PBS -r y
+#PBS -l storage=gdata/hh5+gdata/fs38+gdata/oi10+gdata/rr3+gdata/xp65+gdata/al33+gdata/rt52+gdata/zz93+scratch/nf33+gdata/ct11+gdata/p66+gdata/p73
+#PBS -l wd
+#PBS -q normal
+#PBS -l walltime=04:00:00
+#PBS -l mem=64GB
+#PBS -l ncpus=8
+#PBS -l jobfs=64GB
+#PBS -N HB_CM2
+#PBS -j oe
+#PBS -J 0-4
+
+set -euo pipefail
+
+cd "${PBS_O_WORKDIR:?Submit this job from the pbs_heatbudget directory}"
+
+module purge
+module load pbs
+
+module use /g/data/xp65/public/modules
+module load conda/analysis3-26.01
+
+module load ferret
+module load netcdf
+module load nco
+module load ncl
+
+export PYTHONPATH="/home/599/ars599/.local/lib/python3.11/site-packages:/g/data/p66/ars599/.local/lib/python3.11/site-packages${PYTHONPATH:+:${PYTHONPATH}}"
+
+export HB_INPUT_DIR="${HB_INPUT_DIR:-/g/data/p66/ars599/work_mhg/cm2r1}"
+export HB_OUTPUT_DIR="${HB_OUTPUT_DIR:-$PBS_O_WORKDIR/output}"
+HB_PERIOD="${HB_PERIOD:-190001-200912}"
+
+mkdir -p "$HB_OUTPUT_DIR" logs
+
+variants=(raw aa ab ba bb)
+index="${PBS_ARRAY_INDEX:-0}"
+variant="${variants[$index]}"
+job_number="${PBS_JOBID%%.*}"
+job_number="${job_number%%\[*}"
+script="get_hb_shayne_function_v2_${variant}.py"
+
+echo "variant=$variant"
+echo "period=$HB_PERIOD"
+echo "input=$HB_INPUT_DIR"
+echo "output=$HB_OUTPUT_DIR"
+
+python3 "$script" "$HB_PERIOD" \
+  >"logs/heatbudget_${variant}_${job_number}_${index}.out" \
+  2>"logs/heatbudget_${variant}_${job_number}_${index}.err"

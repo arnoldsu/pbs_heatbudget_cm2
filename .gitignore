@@ -1,0 +1,7 @@
+input/
+output/
+logs/
+*.nc
+*.out
+*.err
+__pycache__/
