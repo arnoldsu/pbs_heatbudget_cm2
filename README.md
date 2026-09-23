@@ -1,4 +1,4 @@
-# ACCESS-CM2 Upper-Ocean Heat Budget with JAX
+# JAX-HeatBudget-CM2: Offline Ocean Heat-Budget Analysis for ACCESS-CM2
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22908714.svg)](https://doi.org/10.5281/zenodo.22908714)
 
@@ -16,23 +16,24 @@ and output.
 
 The upper-ocean temperature tendency is written schematically as
 
-\[
+```math
 \frac{\partial T}{\partial t}
 =
 \mathrm{ADV}
 +
 \mathrm{SHF}
 +
-\mathrm{RES},
-\]
+\mathrm{RES}
+```
 
-where ADV represents three-dimensional ocean temperature advection, SHF is
-the surface heat-flux contribution, and RES represents processes not explicitly
-included in the diagnosed budget together with numerical budget-closure error.
+where **ADV** represents three-dimensional ocean temperature advection,
+**SHF** represents the surface heat-flux contribution, and **RES** represents
+processes not explicitly included in the diagnosed budget together with
+numerical budget-closure error.
 
-In the present implementation,
+In the present implementation, the total advective contribution is
 
-\[
+```math
 \mathrm{ADV}
 =
 -\left(
@@ -41,36 +42,49 @@ In the present implementation,
 \mathrm{VTi}
 +
 \mathrm{WTi}
-\right),
-\]
+\right)
+```
 
-where UTi, VTi, and WTi represent the diagnosed zonal, meridional, and
-vertical advection contributions, respectively.
+where **UTi**, **VTi**, and **WTi** represent the diagnosed zonal,
+meridional, and vertical advection contributions, respectively.
 
-The diagnosed right-hand side is therefore
+The diagnosed right-hand side is
 
-\[
+```math
 \mathrm{RHS}
 =
 \mathrm{ADV}
 +
-\mathrm{SHF},
-\]
+\mathrm{SHF}
+```
 
-and the residual can be diagnosed as
+and the residual is diagnosed as
 
-\[
+```math
 \mathrm{RES}
 =
 \mathrm{TEND}
 -
-\mathrm{RHS}.
-\]
+\mathrm{RHS}
+```
 
-Thus,
+or equivalently,
 
-\[
-\boxed{
+```math
+\mathrm{RES}
+=
+\mathrm{TEND}
+-
+\left(
+\mathrm{ADV}
++
+\mathrm{SHF}
+\right)
+```
+
+Thus, the complete diagnosed temperature budget is
+
+```math
 \mathrm{TEND}
 =
 \mathrm{ADV}
@@ -78,29 +92,16 @@ Thus,
 \mathrm{SHF}
 +
 \mathrm{RES}
-}
-\]
-
-with
-
-\[
-\boxed{
-\mathrm{RES}
-=
-\mathrm{TEND}
--
-(\mathrm{ADV}+\mathrm{SHF})
-}.
-\]
+```
 
 The calculation is performed offline from archived ACCESS-CM2 temperature,
 velocity, and surface heat-flux fields.
 
-The horizontal advection terms are evaluated from the eastern/western and
-northern/southern faces of each temperature grid cell. The zonal contribution
-therefore represents the combined temperature-advection contribution diagnosed
-from the eastern and western faces, while the meridional contribution represents
-that from the northern and southern faces.
+The horizontal advection terms are evaluated using the eastern/western and
+northern/southern faces surrounding each temperature grid cell. The zonal
+contribution therefore combines the temperature-advection contributions
+diagnosed from the eastern and western faces, while the meridional contribution
+combines those from the northern and southern faces.
 
 This face-based formulation is related to the broader control-volume
 heat-budget approach used to diagnose ENSO heat transport across the
@@ -138,7 +139,7 @@ to seconds.
 
 ---
 
-### Depth-Averaged Temperature and Temperature Tendency
+## Depth-Averaged Temperature and Temperature Tendency
 
 For `nlev` active layers,
 
@@ -152,30 +153,33 @@ temp_avg = sum(thetao[k] * dz[k]) / H
 TEND = gradient(temp_avg, time_seconds)
 ```
 
-The corresponding depth-averaged temperature is
+The depth-averaged upper-ocean temperature is
 
-\[
+```math
 \overline{T}
 =
-\frac{1}{H}
-\sum_k T_k\,\Delta z_k,
-\]
+\frac{
+\sum_k T_k \Delta z_k
+}{
+\sum_k \Delta z_k
+}
+```
 
-where
+where the total layer depth is
 
-\[
+```math
 H
 =
-\sum_k \Delta z_k.
-\]
+\sum_k \Delta z_k
+```
 
-The temperature tendency is
+The temperature tendency is therefore
 
-\[
+```math
 \mathrm{TEND}
 =
-\frac{\partial \overline{T}}{\partial t}.
-\]
+\frac{\partial \overline{T}}{\partial t}
+```
 
 Interior time records use centred differences with the actual, potentially
 unequal, monthly time spacing. Endpoints use one-sided differences.
@@ -191,12 +195,14 @@ so the diagnosed temperature represents the upper 50-m ocean layer.
 
 ---
 
-### Horizontal Advection
+## Horizontal Advection
 
 Velocity is averaged onto the corresponding temperature-cell faces and
 multiplied by the neighbouring temperature difference.
 
-For zonal advection,
+### Zonal Advection
+
+For the eastern and western faces,
 
 ```text
 ute[k] = 0.5*(uo_NE[k] + uo_SE[k])*(T_E[k] - T_M[k])
@@ -218,24 +224,37 @@ and the zonal contribution used by the heat-budget calculation is
 UTi = 0.5*(UTe + UTw)
 ```
 
-or schematically,
+Schematically,
 
-\[
+```math
 \mathrm{UTi}
-\approx
+=
 \frac{1}{2H}
 \left[
 \frac{1}{\Delta x}
 \sum_k
-u_E(T_E-T_M)\Delta z_k
+u_E
+\left(
+T_E-T_M
+\right)
+\Delta z_k
 +
 \frac{1}{\Delta x}
 \sum_k
-u_W(T_M-T_W)\Delta z_k
-\right].
-\]
+u_W
+\left(
+T_M-T_W
+\right)
+\Delta z_k
+\right]
+```
 
-For meridional advection,
+Thus, **UTi** represents the zonal temperature-advection contribution
+calculated from the eastern and western cell faces.
+
+### Meridional Advection
+
+For the northern and southern faces,
 
 ```text
 vtn[k] = 0.5*(vo_EN[k] + vo_WN[k])*(T_N[k] - T_M[k])
@@ -257,28 +276,65 @@ and
 VTi = 0.5*(VTn + VTs)
 ```
 
-or schematically,
+Schematically,
 
-\[
+```math
 \mathrm{VTi}
-\approx
+=
 \frac{1}{2H}
 \left[
 \frac{1}{\Delta y}
 \sum_k
-v_N(T_N-T_M)\Delta z_k
+v_N
+\left(
+T_N-T_M
+\right)
+\Delta z_k
 +
 \frac{1}{\Delta y}
 \sum_k
-v_S(T_M-T_S)\Delta z_k
-\right].
-\]
+v_S
+\left(
+T_M-T_S
+\right)
+\Delta z_k
+\right]
+```
 
-Therefore, the discrete horizontal advection terms depend on velocity
+Thus, **VTi** represents the meridional temperature-advection contribution
+calculated from the northern and southern cell faces.
+
+The discrete horizontal advection terms therefore depend on velocity
 multiplied by the local temperature difference across the corresponding
 cell faces, rather than on velocity alone.
 
-Distances are estimated from the two-dimensional model grid coordinates:
+---
+
+## Horizontal Grid Distances
+
+Distances are estimated from the two-dimensional model grid coordinates.
+
+The zonal grid distance is
+
+```math
+\Delta x
+=
+R\,\Delta\lambda\cos(\phi)
+```
+
+and the meridional grid distance is
+
+```math
+\Delta y
+=
+R\,\Delta\phi
+```
+
+where `R` is the Earth radius, `phi` is the representative latitude,
+and the longitude and latitude differences are converted from degrees
+to radians.
+
+In the code,
 
 ```text
 dx = R * dlon * cos(mean latitude)
@@ -286,11 +342,9 @@ dx = R * dlon * cos(mean latitude)
 dy = R * dlat
 ```
 
-where the angular differences are converted from degrees to radians.
-
 ---
 
-### Vertical Advection
+## Vertical Advection
 
 Vertical advection across the bottom of the diagnosed upper-ocean layer is
 
@@ -300,7 +354,7 @@ WTi = WTb = wo_bottom*(T[nlev-1] - T[nlev])/H
 
 or schematically,
 
-\[
+```math
 \mathrm{WTi}
 =
 \frac{
@@ -308,8 +362,10 @@ w_b
 \left(
 T_{nlev-1}-T_{nlev}
 \right)
-}{H}.
-\]
+}{H}
+```
+
+where `w_b` is the vertical velocity at the bottom of the diagnosed layer.
 
 An additional temperature level, `T[nlev]`, is therefore required below
 the five active upper-ocean layers to calculate the bottom temperature
@@ -317,46 +373,67 @@ gradient.
 
 ---
 
-### Surface Heat Flux
+## Surface Heat Flux
 
 The surface heat-flux contribution is
 
-\[
+```math
 \mathrm{SHF}
 =
-\frac{Q_{\mathrm{net}}}
-{\rho_0 c_p H},
-\]
+\frac{
+Q_{\mathrm{net}}
+}{
+\rho_0 c_p H
+}
+```
 
-implemented as
+and is implemented as
 
 ```text
 SHF = hfds/(rho0*cp*H)
 ```
 
-where `hfds` is the net downward surface heat flux into the ocean.
+where `hfds` is the net downward surface heat flux into the ocean,
+`rho0` is the reference seawater density, `cp` is the seawater heat
+capacity, and `H` is the diagnosed upper-ocean depth.
 
 The complete diagnosed advective contribution is
 
-```text
-ADV = -(UTi + VTi + WTi)
+```math
+\mathrm{ADV}
+=
+-\left(
+\mathrm{UTi}
++
+\mathrm{VTi}
++
+\mathrm{WTi}
+\right)
 ```
 
 and the diagnosed right-hand side is
 
-```text
-RHS = ADV + SHF
+```math
+\mathrm{RHS}
+=
+\mathrm{ADV}
++
+\mathrm{SHF}
 ```
 
-with the residual defined as
+The residual budget term is
 
-```text
-RES = TEND - RHS
+```math
+\mathrm{RES}
+=
+\mathrm{TEND}
+-
+\mathrm{RHS}
 ```
 
 or
 
-\[
+```math
 \mathrm{RES}
 =
 \mathrm{TEND}
@@ -365,8 +442,8 @@ or
 \mathrm{ADV}
 +
 \mathrm{SHF}
-\right).
-\]
+\right)
+```
 
 ---
 
@@ -395,20 +472,26 @@ ADV
 RHS
 ```
 
-The principal diagnosed budget can therefore be summarized as
+The diagnosed budget structure is
 
 ```text
-                 TEND
-                   |
-          -------------------
-          |                 |
-         ADV               SHF
+                    TEND
+                      |
+          -------------------------
+          |                       |
+         ADV                     SHF
           |
-     -------------
-     |     |     |
-    UTi   VTi   WTi
-     |     |
-   E + W N + S
+     -----------------
+     |       |       |
+    UTi     VTi     WTi
+     |       |
+   E + W   N + S
+```
+
+with the closure residual diagnosed from
+
+```text
+RES = TEND - RHS
 ```
 
 ---
@@ -526,7 +609,7 @@ Submit from this directory:
 qsub run_heatbudget.pbs
 ```
 
-Configuration can be overridden when required:
+Override configuration if needed:
 
 ```bash
 qsub -v HB_INPUT_DIR=/path/to/input,HB_OUTPUT_DIR=/path/to/output,HB_PERIOD=190001-200912 run_heatbudget.pbs
@@ -540,7 +623,7 @@ qstat -u "$USER"
 
 Outputs are written to `output/`, while PBS logs are written to `logs/`.
 
-For `190001-200912`, the output suffixes are
+For `190001-200912`, output suffixes are
 
 ```text
 .nc
@@ -556,20 +639,19 @@ Generated NetCDF files and scheduler logs should not be committed to Git.
 
 ## Citation
 
-If you use this software in research, please cite the archived software release:
+If you use this software in research, please cite:
 
 **Sullivan, Arnold. (2026).  
-PBS-HeatBudget-CM2: Offline Ocean Heat-Budget Analysis for ACCESS-CM2.  
-Zenodo.**
-
-**DOI:** https://doi.org/10.5281/zenodo.22908714
+JAX-HeatBudget-CM2: Offline Ocean Heat-Budget Analysis for ACCESS-CM2.  
+Zenodo.  
+DOI: 10.5281/zenodo.22908714**
 
 BibTeX:
 
 ```bibtex
-@software{Sullivan_2026_PBS_HeatBudget_CM2,
+@software{Sullivan_2026_JAX_HeatBudget_CM2,
   author    = {Sullivan, Arnold},
-  title     = {PBS-HeatBudget-CM2: Offline Ocean Heat-Budget Analysis for ACCESS-CM2},
+  title     = {JAX-HeatBudget-CM2: Offline Ocean Heat-Budget Analysis for ACCESS-CM2},
   year      = {2026},
   publisher = {Zenodo},
   doi       = {10.5281/zenodo.22908714},
