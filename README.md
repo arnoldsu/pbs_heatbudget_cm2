@@ -106,7 +106,7 @@ combines those from the northern and southern faces.
 This face-based formulation is related to the broader control-volume
 heat-budget approach used to diagnose ENSO heat transport across the
 boundaries of the Niño-3 and Niño-4 regions, for example by
-Guan and McPhaden (2016).
+Lee et al. (2004) and Guan and McPhaden (2016).
 
 ---
 
@@ -662,6 +662,7 @@ BibTeX:
 ---
 
 ## References
+Lee, T., I. Fukumori, and B. Tang, 2004: Temperature Advection: Internal versus External Processes. J. Phys. Oceanogr., 34, 1936–1944, https://doi.org/10.1175/1520-0485(2004)034<1936:TAIVEP>2.0.CO;2.
 
 Guan, C., & McPhaden, M. J. (2016).
 Ocean Processes Affecting the Twenty-First-Century Shift in ENSO SST Variability.
