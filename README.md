@@ -1,3 +1,64 @@
+## Offline Heat-Budget Formulation
+
+The analysis diagnoses the temperature budget offline from archived
+ACCESS-CM2 ocean fields. The temperature tendency is written schematically as
+
+\[
+\frac{\partial T}{\partial t}
+=
+\mathrm{SHF}
++
+\mathrm{ADV}
++
+\mathrm{VDIFF}
++
+\mathrm{RES},
+\]
+
+where SHF is the surface heat-flux contribution, ADV is ocean heat
+advection, VDIFF represents vertical diffusion/mixing, and RES contains
+unresolved processes and budget closure errors.
+
+For a control volume, horizontal advection can alternatively be interpreted
+from heat transport across the boundaries. The zonal contribution is
+
+\[
+\mathrm{ADV}_x
+=
+\frac{1}{V}
+\left[
+\int_{A_W} u_W (T_W-\bar{T})\,dA
+-
+\int_{A_E} u_E (T_E-\bar{T})\,dA
+\right],
+\]
+
+and the meridional contribution is
+
+\[
+\mathrm{ADV}_y
+=
+\frac{1}{V}
+\left[
+\int_{A_S} v_S (T_S-\bar{T})\,dA
+-
+\int_{A_N} v_N (T_N-\bar{T})\,dA
+\right].
+\]
+
+Thus, the commonly used shorthand
+
+\[
+u_i = u_E-u_W
+\]
+
+describes the difference between eastern and western boundary flow, but
+the heat-budget contribution depends on the corresponding velocity-temperature
+transport, \(uT\), rather than velocity alone.
+
+This boundary-flux formulation follows the control-volume heat-budget
+approach used for ENSO Niño-3 and Niño-4 regions by Guan and McPhaden (2016).
+
 # ACCESS-CM2 upper-ocean heat budget with JAX
 
 This directory calculates a monthly upper-ocean temperature budget from
@@ -142,3 +203,11 @@ qsub -v HB_INPUT_DIR=/path/to/input,HB_OUTPUT_DIR=/path/to/output,HB_PERIOD=1900
 Monitor with `qstat -u "$USER"`. Outputs go to `output/`; logs go to `logs/`.
 For `190001-200912`, output suffixes are `.nc`, `_aa.nc`, `_ab.nc`, `_ba.nc`,
 and `_bb.nc`. Do not commit generated NetCDF files or scheduler logs to Git.
+
+
+### References
+
+Guan, C., & McPhaden, M. J. (2016).
+Ocean Processes Affecting the Twenty-First-Century Shift in ENSO SST Variability.
+*Journal of Climate*, 29, 6861–6879.
+https://doi.org/10.1175/JCLI-D-15-0870.1
